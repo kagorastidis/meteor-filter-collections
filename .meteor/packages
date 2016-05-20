@@ -24,3 +24,4 @@ check
 emdagon:bootstrap-multiselect
 underscore
 session
+momentjs:moment

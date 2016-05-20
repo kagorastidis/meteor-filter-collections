@@ -1,8 +1,3 @@
-import { Template } from 'meteor/templating';
-import { ReactiveVar } from 'meteor/reactive-var';
-
-import './main.html';
-
 Template.body.onCreated(function(){
 	Meteor.subscribe('entries');
 });
@@ -17,7 +12,12 @@ Template.body.onRendered(function () {
 Template.body.helpers({
 	getEntries: function () {
 		return entries.find();
-	}
+	},
+  getDistinctEntries:function(){
+    var data = entries.find().fetch();
+    var distinctData = _.uniq(data, false, function(d) {return d.fullName});
+    return _.pluck(distinctData, "fullName");
+  }
 });
 
   Template.body.events({
@@ -33,16 +33,23 @@ Template.body.helpers({
   	},
   'change #filterSelect':function (e) {
     Session.set('filterSelect',$('#filterSelect').val());
-    EntriesFilter.filter.set('name', {value:Session.get('filterSelect'), operator: ['$in']});
+    EntriesFilter.filter.set('fullName', {value:Session.get('filterSelect'), operator: ['$in']});
   },
   'change #dateSelect':function (e) {
     Session.set('dateSelect', $('#dateSelect').val());
-    EntriesFilter.filter.set('createdAt', {value:Session.get('dateSelect'), operator: ['$in']});
+    var date = new Date($('#dateSelect').val());
+    EntriesFilter.filter.set('start', {value:'2016-04-21T08:20:38.000Z', operator: ['$gte']});
+   /* var query = {
+    selector: {
+      start: 'ISODate("2016-04-21T08:20:38.000Z")' ,
+      operator: '$gte'
+    }
+  };
+    EntriesFilter.query.set(query);*/
   },
   'click .clearFilter': function(e){
     _clearFilterSession(e,['filterSelect' ,'dateSelect']);
-    _updatefilters(e, EntriesFilter, ['name','createdAt'],['filterSelect','dateSelect']);
-    //EntriesFilter.filter.set('createdAt', {value:Session.get('dateSelect'), operator: ['$in']});
+    _updatefilters(e, EntriesFilter, ['fullName','start'],['filterSelect','dateSelect']);
     _refreshFilterBox(e,'#filterSelect, #dateSelect');
     if(Session.get('filterSelect').length === 0 && Session.get('dateSelect').length === 0 ){
       _resetFilters();
@@ -53,17 +60,22 @@ Template.body.helpers({
   EntriesFilter = new FilterCollections(entries, {
   template: 'body',
   pager: {
-  	itemsPerPage: 50000
+  	itemsPerPage: 1000
   },
   filters: {
-  	name: {
+  	fullName: {
 	  	title: 'Entry name',
       condition: '$or'
 	  },
-	createdAt: {
+	start: {
 		title: 'Entry date',
-    condition: '$or'
-	  }
+    condition: '$gte',
+    /*transform: function (value){
+      var date = new moment(new Date(value));
+      Session.set('dateSelect', date.valueOf());
+      return date.valueOf();
+    }*/
+  	}
 	}
 });
 
